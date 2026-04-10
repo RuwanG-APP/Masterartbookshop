@@ -1,96 +1,88 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function PaymentPage() {
+// පරාමිතීන් කියවීමට වෙනම කොටසක් (Next.js වල හොඳම ක්‍රමය)
+function PaymentContent() {
+  const searchParams = useSearchParams();
+  const bookName = searchParams.get("book") || "පොතක් තෝරා නැත";
+  const bookPrice = searchParams.get("price") || "0.00";
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [method, setMethod] = useState("COD");
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleOrder = async () => {
+    if (!image) return alert("කරුණාකර බැංකු රිසිට් පත අප්ලෝඩ් කරන්න.");
     setLoading(true);
-    let receiptUrl = "";
 
-    // බැංකු ගෙවීමක් නම් පින්තූරය Cloudinary වලට upload කරනවා
-         
-if (method === "Bank" && image) {
-  const formData = new FormData();
-  formData.append("file", image);
-  formData.append("upload_preset", "my_receipts"); // මේ නම ස්ක්‍රීන්ෂොට් එකේ විදිහටම තියෙන්න ඕනේ
+    try {
+      // 1. Cloudinary අප්ලෝඩ් එක
+      const formData = new FormData();
+      formData.append("file", image);
+      formData.append("upload_preset", "my_receipts"); // ඔයාගේ Unsigned Preset එක
 
-  try {
-    const res = await fetch("https://api.cloudinary.com/v1_1/dua7odtea/image/upload", {
-      method: "POST",
-      body: formData,
-    });
+      const res = await fetch("https://api.cloudinary.com/v1_1/dua7odtea/image/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
 
-        const data = await res.json();
+      if (data.secure_url) {
+        // 2. WhatsApp මැසේජ් එක සකස් කිරීම
+        const myWhatsApp = "94716373716"; // ඔයාගේ WhatsApp අංකය
+        const message = `*අලුත් පොත් ඇණවුමක්!*%0A%0A*පොත:* ${bookName}%0A*මිල:* Rs. ${bookPrice}%0A%0A*පාරිභෝගික නම:* ${name}%0A*දුරකථන:* ${phone}%0A%0A*රිසිට් පත:* ${data.secure_url}`;
         
-        if (data.secure_url) {
-          receiptUrl = data.secure_url;
-        } else {
-          alert("පින්තූරය upload වුණේ නැහැ. කරුණාකර Cloudinary Preset එක 'Unsigned' ද කියා පරීක්ෂා කරන්න.");
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        alert("සම්බන්ධතා ගැටලුවක්! නැවත උත්සාහ කරන්න.");
-        setLoading(false);
-        return;
+        window.open(`https://wa.me/${myWhatsApp}?text=${message}`, "_blank");
+      } else {
+        alert("රිසිට් එක අප්ලෝඩ් වුණේ නැහැ. නැවත උත්සාහ කරන්න.");
       }
+    } catch (err) {
+      alert("දෝෂයක් ඇතිවිය. කරුණාකර නැවත උත්සාහ කරන්න.");
+    } finally {
+      setLoading(false);
     }
-
-    // WhatsApp පණිවිඩය සකස් කිරීම
-    // මෙතනට ඔයාගේ ඇත්තම WhatsApp අංකය දාන්න (උදා: 94716373716)
-    const myWhatsApp = "94760829235"; 
-    
-    const paymentMsg = method === "COD" ? "භාණ්ඩ ලැබුණු පසු මුදල් ගෙවීම (COD)" : "බැංකු තැන්පතු (Bank Transfer)";
-    const receiptLink = receiptUrl ? `%0A*රිසිට් පත:* ${receiptUrl}` : "";
-
-    const message = `*අලුත් ඇණවුමක්!*%0A%0A*නම:* ${name}%0A*දුරකථන:* ${phone}%0A*ගෙවීම් ක්‍රමය:* ${paymentMsg}${receiptLink}`;
-    
-    window.open(`https://wa.me/${myWhatsApp}?text=${message}`, "_blank");
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold text-blue-600 mb-6 text-center">ඇණවුම තහවුරු කරන්න</h1>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+        <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">ඇණවුම තහවුරු කරන්න</h2>
         
+        {/* තෝරාගත් පොතේ විස්තර */}
+        <div className="bg-blue-50 p-4 rounded-xl mb-6 border border-blue-100">
+          <p className="text-blue-900 font-bold text-lg leading-tight">{bookName}</p>
+          <p className="text-blue-600 font-bold text-xl mt-1">Rs. {bookPrice}</p>
+        </div>
+
         <div className="space-y-4">
-          <input type="text" placeholder="ඔබේ නම" className="w-full p-3 border rounded-lg focus:outline-blue-500" onChange={(e) => setName(e.target.value)} />
-          <input type="text" placeholder="දුරකථන අංකය" className="w-full p-3 border rounded-lg focus:outline-blue-500" onChange={(e) => setPhone(e.target.value)} />
+          <input type="text" placeholder="ඔබේ නම" className="w-full p-3 border border-gray-300 rounded-lg outline-blue-500" onChange={(e) => setName(e.target.value)} />
+          <input type="text" placeholder="දුරකථන අංකය" className="w-full p-3 border border-gray-300 rounded-lg outline-blue-500" onChange={(e) => setPhone(e.target.value)} />
 
-          <div className="p-3 border rounded-lg bg-gray-50">
-            <p className="text-sm font-medium mb-2 text-gray-600">ගෙවීම් ක්‍රමය තෝරන්න:</p>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="method" value="COD" checked={method === "COD"} onChange={() => setMethod("COD")} /> COD
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="method" value="Bank" checked={method === "Bank"} onChange={() => setMethod("Bank")} /> Bank Transfer
-              </label>
-            </div>
+          <div className="p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/50">
+            <p className="text-sm font-semibold mb-2 text-gray-600">බැංකු රිසිට් පත (Receipt) මෙතනට දාන්න:</p>
+            <input type="file" accept="image/*" className="w-full text-sm text-gray-500" onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)} />
           </div>
-
-          {method === "Bank" && (
-            <div className="p-3 border-2 border-dashed border-blue-200 rounded-lg bg-blue-50 animate-pulse">
-              <p className="text-sm font-medium mb-1 text-blue-700">බැංකු රිසිට් පත මෙතනට දාන්න:</p>
-              <input type="file" accept="image/*" className="w-full text-sm" onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)} />
-            </div>
-          )}
 
           <button 
             onClick={handleOrder}
-            disabled={!name || !phone || (method === "Bank" && !image) || loading}
-            className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition-all disabled:bg-gray-400 shadow-md"
+            disabled={!name || !phone || !image || loading}
+            className="w-full bg-green-500 text-white font-bold py-4 rounded-xl hover:bg-green-600 transition-all disabled:bg-gray-300 shadow-lg"
           >
-            {loading ? "සැකසෙමින් පවතී..." : "WHATSAPP හරහා ඇණවුම් කරන්න"}
+            {loading ? "රිසිට් පත යවමින්..." : "ඇණවුම සම්පූර්ණ කරන්න"}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+// Next.js වල useSearchParams පාවිච්චි කරන විට Suspense අවශ්‍ය වේ
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen">Loading...</div>}>
+      <PaymentContent />
+    </Suspense>
   );
 }

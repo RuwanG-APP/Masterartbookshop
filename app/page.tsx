@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, ShoppingCart, X, Lock, Unlock, Edit3 } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Lock, Unlock, Edit3 } from 'lucide-react';
 // 👇 Firebase Imports
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
-// 👇 ඔයාගේ Firebase Config එක මෙතන තියෙනවා
+// 👇 ඔයාගේ Firebase Config එක
 const firebaseConfig = {
   apiKey: "AIzaSyB2FOXA42Df70SE59MZgVEAV16eipXKnik",
   authDomain: "my-bookshop-130c8.firebaseapp.com",
@@ -16,23 +16,18 @@ const firebaseConfig = {
   appId: "1:887183389723:web:e8b268bf13529f7f1a74be"
 };
 
-// 👇 Firebase Database එක පටන් ගන්නවා
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 export default function Home() {
-  const myNumber = "94760829235";
-  
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedBook, setSelectedBook] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingBook, setEditingBook] = useState<any>(null);
   const [newBook, setNewBook] = useState({ name: '', price: '', image: '' });
-  const [orderInfo, setOrderInfo] = useState({ name: '', address: '', phone: '', payment: 'Cash on Delivery (COD)' });
 
-  // 👇 සයිට් එක ලෝඩ් වෙද්දී Firebase එකෙන් පොත් ටික ගේනවා
+  // 👇 Firebase එකෙන් පොත් ටික ගේනවා
   useEffect(() => {
     const fetchBooks = async () => {
       try {
@@ -58,10 +53,8 @@ export default function Home() {
     }
   };
 
-  // 👇 අලුත් පොතක් සේව් කරන කොට හෝ එඩිට් කරන කොට Database එකට යවනවා
   const saveBook = async () => {
     if (editingBook) {
-      // පොත එඩිට් කිරීම
       const bookRef = doc(db, "books", editingBook.id);
       await updateDoc(bookRef, {
         name: editingBook.name,
@@ -71,7 +64,6 @@ export default function Home() {
       setBooks(books.map(b => b.id === editingBook.id ? { ...editingBook } : b));
       setEditingBook(null);
     } else {
-      // අලුත් පොතක් ඇතුළත් කිරීම
       if (newBook.name && newBook.price) {
         const docRef = await addDoc(collection(db, "books"), newBook);
         setBooks([...books, { ...newBook, id: docRef.id }]);
@@ -81,7 +73,6 @@ export default function Home() {
     }
   };
 
-  // 👇 පොතක් මකන කොට Database එකෙන් මකනවා
   const deleteBook = async (id: string) => {
     const confirmDelete = window.confirm("මේ පොත මකන්න ඕනෙද?");
     if (confirmDelete) {
@@ -90,20 +81,9 @@ export default function Home() {
     }
   };
 
-  const sendWhatsApp = () => {
-    const message = `*අලුත් ඇණවුමක් !* 📚\n\n` +
-      `*පොත :* ${selectedBook.name}\n` +
-      `*මිල :* රු. ${selectedBook.price}\n\n` +
-      `*පාරිභෝගික විස්තර :*\n` +
-      `------------------\n` +
-      `*නම :* ${orderInfo.name}\n` +
-      `*ලිපිනය :* ${orderInfo.address}\n` +
-      `*දුරකථන :* ${orderInfo.phone}\n` +
-      `*ගෙවීම් ක්‍රමය :* ${orderInfo.payment}\n\n` +
-      `ස්තූතියි !`;
-
-    window.open(`https://wa.me/${myNumber}?text=${encodeURIComponent(message)}`, "_blank");
-    setSelectedBook(null);
+  // 👇 පාරිභෝගිකයා පොතක් තෝරාගත් විට Payment පිටුවට යොමු කිරීම
+  const goToPayment = (book: any) => {
+    window.location.href = `/payment?book=${encodeURIComponent(book.name)}&price=${book.price}`;
   };
 
   return (
@@ -128,7 +108,8 @@ export default function Home() {
               <div className="p-8 text-center">
                 <h2 className="text-2xl font-bold text-gray-800">{book.name}</h2>
                 <p className="text-blue-600 font-black text-3xl mt-2 font-mono">Rs. {book.price}</p>
-                <button onClick={() => setSelectedBook(book)} className="mt-6 bg-green-500 text-white px-8 py-4 rounded-2xl w-full font-black text-lg shadow-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-all">
+                {/* 👇 මෙන්න මෙතන තමයි අලුත් Payment Page එකට යන බටන් එක තියෙන්නේ */}
+                <button onClick={() => goToPayment(book)} className="mt-6 bg-green-500 text-white px-8 py-4 rounded-2xl w-full font-black text-lg shadow-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-all">
                   <ShoppingCart size={20}/> ORDER VIA WHATSAPP
                 </button>
               </div>
@@ -171,26 +152,6 @@ export default function Home() {
                 <button onClick={saveBook} className="bg-blue-600 text-white flex-1 py-4 rounded-2xl font-black text-lg shadow-lg hover:bg-blue-700 transition-colors">SAVE BOOK</button>
                 <button onClick={() => {setShowAddModal(false); setEditingBook(null);}} className="bg-gray-200 text-gray-600 flex-1 py-4 rounded-2xl font-black text-lg hover:bg-gray-300 transition-colors">CANCEL</button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- ORDER FORM MODAL --- */}
-      {selectedBook && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-[35px] w-full max-w-md shadow-2xl relative">
-            <button onClick={() => setSelectedBook(null)} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"><X size={28}/></button>
-            <h2 className="text-2xl font-black mb-6 text-gray-800 border-b pb-2 tracking-tight">ඇණවුම් විස්තර ({selectedBook.name})</h2>
-            <div className="space-y-4">
-              <input placeholder="ඔබේ නම" className="w-full bg-gray-50 p-4 rounded-xl border focus:border-blue-500 outline-none" onChange={e => setOrderInfo({...orderInfo, name: e.target.value})} />
-              <textarea placeholder="ලිපිනය" className="w-full bg-gray-50 p-4 rounded-xl border focus:border-blue-500 outline-none" rows={2} onChange={e => setOrderInfo({...orderInfo, address: e.target.value})} />
-              <input placeholder="දුරකථන අංකය" className="w-full bg-gray-50 p-4 rounded-xl border focus:border-blue-500 outline-none" onChange={e => setOrderInfo({...orderInfo, phone: e.target.value})} />
-              <select className="w-full bg-gray-50 p-4 rounded-xl border outline-none font-bold" onChange={e => setOrderInfo({...orderInfo, payment: e.target.value})}>
-                <option value="Cash on Delivery (COD)">Cash on Delivery (COD)</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-              </select>
-              <button onClick={sendWhatsApp} disabled={!orderInfo.name || !orderInfo.address || !orderInfo.phone} className="w-full bg-green-500 text-white py-5 rounded-2xl font-black text-xl mt-4 shadow-xl hover:bg-green-600 disabled:bg-gray-300 transition-all">CONFIRM ORDER</button>
             </div>
           </div>
         </div>
