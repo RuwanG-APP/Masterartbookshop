@@ -1,65 +1,208 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, ShoppingCart, X, Lock, Unlock, Edit3 } from 'lucide-react';
+// 👇 Firebase Imports
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+
+// 👇 ඔයාගේ Firebase Config එක මෙතන තියෙනවා
+const firebaseConfig = {
+  apiKey: "AIzaSyB2FOXA42Df70SE59MZgVEAV16eipXKnik",
+  authDomain: "my-bookshop-130c8.firebaseapp.com",
+  projectId: "my-bookshop-130c8",
+  storageBucket: "my-bookshop-130c8.firebasestorage.app",
+  messagingSenderId: "887183389723",
+  appId: "1:887183389723:web:e8b268bf13529f7f1a74be"
+};
+
+// 👇 Firebase Database එක පටන් ගන්නවා
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 export default function Home() {
+  const myNumber = "94760829235";
+  
+  const [books, setBooks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<any>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingBook, setEditingBook] = useState<any>(null);
+  const [newBook, setNewBook] = useState({ name: '', price: '', image: '' });
+  const [orderInfo, setOrderInfo] = useState({ name: '', address: '', phone: '', payment: 'Cash on Delivery (COD)' });
+
+  // 👇 සයිට් එක ලෝඩ් වෙද්දී Firebase එකෙන් පොත් ටික ගේනවා
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "books"));
+        const booksData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setBooks(booksData);
+      } catch (error) {
+        console.error("Error fetching books: ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBooks();
+  }, []);
+
+  const handleAdminToggle = () => {
+    if (!isAdmin) {
+      const pass = prompt("ඇඩ්මින් මුරපදය ඇතුළත් කරන්න:");
+      if (pass === "123") setIsAdmin(true);
+      else alert("මුරපදය වැරදියි!");
+    } else {
+      setIsAdmin(false);
+    }
+  };
+
+  // 👇 අලුත් පොතක් සේව් කරන කොට හෝ එඩිට් කරන කොට Database එකට යවනවා
+  const saveBook = async () => {
+    if (editingBook) {
+      // පොත එඩිට් කිරීම
+      const bookRef = doc(db, "books", editingBook.id);
+      await updateDoc(bookRef, {
+        name: editingBook.name,
+        price: editingBook.price,
+        image: editingBook.image
+      });
+      setBooks(books.map(b => b.id === editingBook.id ? { ...editingBook } : b));
+      setEditingBook(null);
+    } else {
+      // අලුත් පොතක් ඇතුළත් කිරීම
+      if (newBook.name && newBook.price) {
+        const docRef = await addDoc(collection(db, "books"), newBook);
+        setBooks([...books, { ...newBook, id: docRef.id }]);
+        setShowAddModal(false);
+        setNewBook({ name: '', price: '', image: '' });
+      }
+    }
+  };
+
+  // 👇 පොතක් මකන කොට Database එකෙන් මකනවා
+  const deleteBook = async (id: string) => {
+    const confirmDelete = window.confirm("මේ පොත මකන්න ඕනෙද?");
+    if (confirmDelete) {
+      await deleteDoc(doc(db, "books", id));
+      setBooks(books.filter(b => b.id !== id));
+    }
+  };
+
+  const sendWhatsApp = () => {
+    const message = `*අලුත් ඇණවුමක් !* 📚\n\n` +
+      `*පොත :* ${selectedBook.name}\n` +
+      `*මිල :* රු. ${selectedBook.price}\n\n` +
+      `*පාරිභෝගික විස්තර :*\n` +
+      `------------------\n` +
+      `*නම :* ${orderInfo.name}\n` +
+      `*ලිපිනය :* ${orderInfo.address}\n` +
+      `*දුරකථන :* ${orderInfo.phone}\n` +
+      `*ගෙවීම් ක්‍රමය :* ${orderInfo.payment}\n\n` +
+      `ස්තූතියි !`;
+
+    window.open(`https://wa.me/${myNumber}?text=${encodeURIComponent(message)}`, "_blank");
+    setSelectedBook(null);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans">
+      <header className="text-center mb-16">
+        <h1 className="text-6xl font-black text-blue-600 italic uppercase tracking-tighter">My Bookshop</h1>
+      </header>
+
+      {loading ? (
+        <div className="text-center text-2xl font-bold text-gray-400 mt-20">පොත් ලෝඩ් වෙමින් පවතී... ⏳</div>
+      ) : (
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
+          {books.map((book) => (
+            <div key={book.id} className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-gray-100 relative group transition-all hover:scale-105">
+              {isAdmin && (
+                <div className="absolute top-4 right-4 flex gap-2 z-10">
+                  <button onClick={() => setEditingBook(book)} className="bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 transition-colors"><Edit3 size={18}/></button>
+                  <button onClick={() => deleteBook(book.id)} className="bg-red-500 text-white p-3 rounded-full shadow-lg hover:bg-red-600 transition-colors"><Trash2 size={18}/></button>
+                </div>
+              )}
+              <img src={book.image} alt={book.name} className="w-full h-72 object-cover" />
+              <div className="p-8 text-center">
+                <h2 className="text-2xl font-bold text-gray-800">{book.name}</h2>
+                <p className="text-blue-600 font-black text-3xl mt-2 font-mono">Rs. {book.price}</p>
+                <button onClick={() => setSelectedBook(book)} className="mt-6 bg-green-500 text-white px-8 py-4 rounded-2xl w-full font-black text-lg shadow-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-all">
+                  <ShoppingCart size={20}/> ORDER VIA WHATSAPP
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {isAdmin && (
+            <button onClick={() => setShowAddModal(true)} className="border-4 border-dashed border-blue-200 rounded-[40px] flex flex-col items-center justify-center p-10 text-blue-400 hover:bg-blue-50 transition-all min-h-[400px]">
+              <Plus size={60} strokeWidth={3} />
+              <span className="font-black text-xl mt-4">ADD NEW BOOK</span>
+            </button>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      )}
+
+      {/* --- ADD / EDIT MODAL --- */}
+      {(showAddModal || editingBook) && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-[35px] w-full max-w-md shadow-2xl">
+            <h2 className="text-2xl font-black mb-6 text-gray-800 border-b pb-2">{editingBook ? "පොත සංස්කරණය" : "අලුත් පොතක් ඇතුළත් කරන්න"}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-400 ml-1">පොතේ නම</label>
+                <input value={editingBook ? editingBook.name : newBook.name} className="w-full bg-gray-100 p-4 rounded-xl border outline-none focus:border-blue-500" onChange={e => editingBook ? setEditingBook({...editingBook, name: e.target.value}) : setNewBook({...newBook, name: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-400 ml-1">මිල (රු.)</label>
+                <input value={editingBook ? editingBook.price : newBook.price} className="w-full bg-gray-100 p-4 rounded-xl border outline-none focus:border-blue-500" onChange={e => editingBook ? setEditingBook({...editingBook, price: e.target.value}) : setNewBook({...newBook, price: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-400 ml-1">පිටකවරය (පින්තූර ලින්ක් එක)</label>
+                <input 
+                  placeholder="/image-name.jpg"
+                  value={editingBook ? editingBook.image : newBook.image} 
+                  className="w-full bg-gray-100 p-4 rounded-xl border outline-none focus:border-blue-500" 
+                  onChange={e => editingBook ? setEditingBook({...editingBook, image: e.target.value}) : setNewBook({...newBook, image: e.target.value})} 
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button onClick={saveBook} className="bg-blue-600 text-white flex-1 py-4 rounded-2xl font-black text-lg shadow-lg hover:bg-blue-700 transition-colors">SAVE BOOK</button>
+                <button onClick={() => {setShowAddModal(false); setEditingBook(null);}} className="bg-gray-200 text-gray-600 flex-1 py-4 rounded-2xl font-black text-lg hover:bg-gray-300 transition-colors">CANCEL</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
+      )}
+
+      {/* --- ORDER FORM MODAL --- */}
+      {selectedBook && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-[35px] w-full max-w-md shadow-2xl relative">
+            <button onClick={() => setSelectedBook(null)} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"><X size={28}/></button>
+            <h2 className="text-2xl font-black mb-6 text-gray-800 border-b pb-2 tracking-tight">ඇණවුම් විස්තර ({selectedBook.name})</h2>
+            <div className="space-y-4">
+              <input placeholder="ඔබේ නම" className="w-full bg-gray-50 p-4 rounded-xl border focus:border-blue-500 outline-none" onChange={e => setOrderInfo({...orderInfo, name: e.target.value})} />
+              <textarea placeholder="ලිපිනය" className="w-full bg-gray-50 p-4 rounded-xl border focus:border-blue-500 outline-none" rows={2} onChange={e => setOrderInfo({...orderInfo, address: e.target.value})} />
+              <input placeholder="දුරකථන අංකය" className="w-full bg-gray-50 p-4 rounded-xl border focus:border-blue-500 outline-none" onChange={e => setOrderInfo({...orderInfo, phone: e.target.value})} />
+              <select className="w-full bg-gray-50 p-4 rounded-xl border outline-none font-bold" onChange={e => setOrderInfo({...orderInfo, payment: e.target.value})}>
+                <option value="Cash on Delivery (COD)">Cash on Delivery (COD)</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+              <button onClick={sendWhatsApp} disabled={!orderInfo.name || !orderInfo.address || !orderInfo.phone} className="w-full bg-green-500 text-white py-5 rounded-2xl font-black text-xl mt-4 shadow-xl hover:bg-green-600 disabled:bg-gray-300 transition-all">CONFIRM ORDER</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <footer className="text-center mt-20 pb-10">
+        <button onClick={handleAdminToggle} className="flex items-center gap-2 mx-auto bg-gray-200 text-gray-600 px-6 py-2 rounded-full font-bold text-sm hover:bg-gray-300 transition-colors shadow-sm">
+          {isAdmin ? <Unlock size={16}/> : <Lock size={16}/>}
+          {isAdmin ? "EXIT ADMIN MODE" : "ADMIN LOGIN"}
+        </button>
+        <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-4">© 2026 MY BOOKSHOP - NARAMMALA</p>
+      </footer>
     </div>
   );
 }
