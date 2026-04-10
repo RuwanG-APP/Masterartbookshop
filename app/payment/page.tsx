@@ -42,7 +42,7 @@ function PaymentContent() {
       }
 
       const bookList = cart.map(item => `• ${item.name} (Rs. ${item.price})`).join("%0A");
-      const myWhatsApp = "94716373716";
+      const myWhatsApp = "94760829235";
       
       // WhatsApp මැසේජ් එකට අලුත් විස්තර එකතු කිරීම
       const message = `*අලුත් පොත් ඇණවුමක්!*%0A%0A*තෝරාගත් පොත්:*%0A${bookList}%0A%0A*මුළු මුදල:* Rs. ${totalPrice}%0A%0A*පාරිභෝගික විස්තර:*%0A👤 නම: ${name}%0A📞 දුරකථන: ${phone}%0A🏠 ලිපිනය: ${address}%0A📧 Email: ${email}%0A💳 ගෙවීම් ක්‍රමය: ${paymentMethod}%0A%0A*රිසිට් පත:* ${receiptUrl}`;
