@@ -31,7 +31,7 @@ function PaymentContent() {
 
       if (data.secure_url) {
         // 2. WhatsApp මැසේජ් එක සකස් කිරීම
-        const myWhatsApp = "94716373716"; // ඔයාගේ WhatsApp අංකය
+        const myWhatsApp = "94760829235"; // ඔයාගේ WhatsApp අංකය
         const message = `*අලුත් පොත් ඇණවුමක්!*%0A%0A*පොත:* ${bookName}%0A*මිල:* Rs. ${bookPrice}%0A%0A*පාරිභෝගික නම:* ${name}%0A*දුරකථන:* ${phone}%0A%0A*රිසිට් පත:* ${data.secure_url}`;
         
         window.open(`https://wa.me/${myWhatsApp}?text=${message}`, "_blank");
