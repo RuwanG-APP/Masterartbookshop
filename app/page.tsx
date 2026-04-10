@@ -82,9 +82,24 @@ export default function Home() {
   };
 
   // 👇 පාරිභෝගිකයා පොතක් තෝරාගත් විට Payment පිටුවට යොමු කිරීම
-  const goToPayment = (book: any) => {
-    window.location.href = `/payment?book=${encodeURIComponent(book.name)}&price=${book.price}`;
-  };
+ 
+
+const goToPayment = (book: any) => {
+  // දැනට තියෙන පොත් ටික ගන්නවා
+  const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
+  
+  // අලුත් පොත ඇඩ් කරනවා (එකම පොත දෙපාරක් ඇඩ් නොවෙන්න බලනවා)
+  const isExist = existingCart.find((item: any) => item.name === book.name);
+  if (!isExist) {
+    existingCart.push({ name: book.name, price: book.price });
+    localStorage.setItem("cart", JSON.stringify(existingCart));
+  }
+  
+  window.location.href = "/payment";
+};
+
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans">
