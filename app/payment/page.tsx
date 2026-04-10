@@ -5,9 +5,10 @@ function PaymentContent() {
   const [cart, setCart] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState(""); // Address අලුතින්
-  const [email, setEmail] = useState("");     // Email අලුතින්
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
+  const [deliveryArea, setDeliveryArea] = useState("0"); // Delivery Charge එක
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,23 +17,27 @@ function PaymentContent() {
     setCart(savedCart);
   }, []);
 
-  const totalPrice = cart.reduce((sum, item) => sum + parseInt(item.price), 0);
+  const subTotal = cart.reduce((sum, item) => sum + parseInt(item.price), 0);
+  const totalWithDelivery = subTotal + parseInt(deliveryArea);
 
-  // Phone Number එක වැලිඩේට් කරන ෆන්ක්ෂන් එක
-  const isPhoneValid = (num: string) => /^\d{10}$/.test(num);
+  // Cart එකෙන් පොතක් අයින් කිරීම
+  const removeFromCart = (index: number) => {
+    const updatedCart = cart.filter((_, i) => i !== index);
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+  };
 
   const handleOrder = async () => {
     if (cart.length === 0) return alert("කරුණාකර අවම වශයෙන් එක් පොතක්වත් තෝරන්න.");
-    if (!isPhoneValid(phone)) return alert("කරුණාකර නිවැරදි ඉලක්කම් 10ක දුරකථන අංකයක් ඇතුළත් කරන්න.");
-    if (!address.trim()) return alert("කරුණාකර බෙදාහැරිය යුතු ලිපිනය (Address) ඇතුළත් කරන්න.");
-    if (!email.trim() || !email.includes("@")) return alert("කරුණාකර නිවැරදි Email ලිපිනයක් ඇතුළත් කරන්න.");
+    if (!/^\d{10}$/.test(phone)) return alert("දුරකථන අංකය ඉලක්කම් 10ක් විය යුතුය.");
+    if (!address || !email) return alert("Email සහ Address අනිවාර්යය වේ.");
 
     setLoading(true);
-    let receiptUrl = "COD ඇණවුමකි (No Receipt)";
+    let receiptUrl = "COD (No Receipt)";
 
     try {
       if (paymentMethod === "Bank Transfer") {
-        if (!image) { alert("රිසිට් පත අප්ලෝඩ් කරන්න."); setLoading(false); return; }
+        if (!image) { alert("රිසිට් පත දාන්න."); setLoading(false); return; }
         const formData = new FormData();
         formData.append("file", image);
         formData.append("upload_preset", "my_receipts");
@@ -42,67 +47,66 @@ function PaymentContent() {
       }
 
       const bookList = cart.map(item => `• ${item.name} (Rs. ${item.price})`).join("%0A");
-      const myWhatsApp = "94760829235";
+      const message = `*නව ඇණවුමක්!*%0A%0A*පොත්:*%0A${bookList}%0A%0A*මුළු මුදල:* Rs. ${totalWithDelivery}%0A*නම:* ${name}%0A*ලිපිනය:* ${address}%0A*ගෙවීම් ක්‍රමය:* ${paymentMethod}%0A*රිසිට්:* ${receiptUrl}`;
       
-      // WhatsApp මැසේජ් එකට අලුත් විස්තර එකතු කිරීම
-      const message = `*අලුත් පොත් ඇණවුමක්!*%0A%0A*තෝරාගත් පොත්:*%0A${bookList}%0A%0A*මුළු මුදල:* Rs. ${totalPrice}%0A%0A*පාරිභෝගික විස්තර:*%0A👤 නම: ${name}%0A📞 දුරකථන: ${phone}%0A🏠 ලිපිනය: ${address}%0A📧 Email: ${email}%0A💳 ගෙවීම් ක්‍රමය: ${paymentMethod}%0A%0A*රිසිට් පත:* ${receiptUrl}`;
-      
-      window.open(`https://wa.me/${myWhatsApp}?text=${message}`, "_blank");
-
+      window.open(`https://wa.me/94760829235?text=${message}`, "_blank");
       localStorage.removeItem("cart");
-      setTimeout(() => { window.location.href = "/"; }, 2000);
+      
+      // Success Message එකක් දීලා Return වෙනවා
+      alert("ස්තූතියි! ඔබේ ඇණවුම සාර්ථකයි.");
+      window.location.href = "/";
 
-    } catch (err) { alert("දෝෂයක් ඇතිවිය."); } finally { setLoading(false); }
+    } catch (err) { alert("දෝෂයක්!"); } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-        <h2 className="text-xl font-bold text-gray-800 text-center mb-4 text-blue-600 italic uppercase tracking-tighter">Confirm Your Order</h2>
+        <h2 className="text-xl font-bold text-center mb-4 text-blue-600">CONFIRM YOUR ORDER</h2>
         
-        <div className="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-100 max-h-40 overflow-y-auto shadow-inner">
+        {/* Cart items with Remove Button */}
+        <div className="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-100">
           {cart.map((item, index) => (
-            <div key={index} className="flex justify-between border-b border-blue-100 py-1 last:border-0">
-              <span className="text-sm font-medium text-blue-900">{item.name}</span>
-              <span className="text-sm font-bold text-blue-600">Rs. {item.price}</span>
+            <div key={index} className="flex justify-between items-center border-b border-blue-100 py-2 last:border-0">
+              <div className="text-sm">
+                <p className="font-bold text-blue-900">{item.name}</p>
+                <p className="text-blue-600">Rs. {item.price}</p>
+              </div>
+              <button onClick={() => removeFromCart(index)} className="text-red-500 font-bold px-2">X</button>
             </div>
           ))}
-          <div className="mt-2 text-right font-black text-blue-700">Total: Rs. {totalPrice}</div>
         </div>
 
-        <button onClick={() => window.location.href = "/"} className="w-full mb-4 py-2 text-xs font-bold text-blue-500 border-2 border-dashed border-blue-200 rounded-xl hover:bg-blue-50 transition-colors">
-          + තවත් පොත් එක් කරන්න
-        </button>
-
         <div className="space-y-3">
-          <input type="text" placeholder="පාරිභෝගික නම" className="w-full p-3 border rounded-xl outline-blue-400 text-sm" onChange={(e) => setName(e.target.value)} />
-          
-          <div className="relative">
-             <input type="tel" placeholder="දුරකථන අංකය (උදා: 0716373716)" className={`w-full p-3 border rounded-xl outline-blue-400 text-sm ${phone && !isPhoneValid(phone) ? 'border-red-500' : ''}`} onChange={(e) => setPhone(e.target.value)} />
-             {phone && !isPhoneValid(phone) && <span className="text-[10px] text-red-500 mt-1 block ml-1">අංක 10ක් තිබිය යුතුය</span>}
-          </div>
+          {/* Delivery Area Selection */}
+          <select className="w-full p-3 border rounded-xl text-sm" onChange={(e) => setDeliveryArea(e.target.value)}>
+            <option value="0">Delivery Area තෝරන්න</option>
+            <option value="350">කොළඹ ඇතුළත (Rs. 350)</option>
+            <option value="500">කොළඹින් පිටත (Rs. 500)</option>
+          </select>
 
-          <input type="email" placeholder="ඊමේල් ලිපිනය" className="w-full p-3 border rounded-xl outline-blue-400 text-sm" onChange={(e) => setEmail(e.target.value)} />
-          
-          <textarea placeholder="බෙදාහැරිය යුතු ලිපිනය (Address)" className="w-full p-3 border rounded-xl outline-blue-400 text-sm h-20" onChange={(e) => setAddress(e.target.value)}></textarea>
-          
+          <input type="text" placeholder="ඔබේ නම" className="w-full p-3 border rounded-xl text-sm" onChange={(e) => setName(e.target.value)} />
+          <input type="tel" placeholder="දුරකථන අංකය (10 digits)" className="w-full p-3 border rounded-xl text-sm" onChange={(e) => setPhone(e.target.value)} />
+          <input type="email" placeholder="ඊමේල් ලිපිනය" className="w-full p-3 border rounded-xl text-sm" onChange={(e) => setEmail(e.target.value)} />
+          <textarea placeholder="බෙදාහැරිය යුතු ලිපිනය" className="w-full p-3 border rounded-xl text-sm h-16" onChange={(e) => setAddress(e.target.value)}></textarea>
+
           <select className="w-full p-3 border rounded-xl font-semibold bg-gray-50 text-sm" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
             <option value="Bank Transfer">Bank Transfer (බැංකු තැන්පතු)</option>
             <option value="Cash on Delivery (COD)">Cash on Delivery (COD)</option>
           </select>
 
+          {/* Bank Details with Copy functionality */}
           {paymentMethod === "Bank Transfer" && (
-            <div className="p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/50">
-              <p className="text-[10px] font-bold mb-1 text-gray-500 uppercase">බැංකු රිසිට් පත මෙතනට දාන්න:</p>
-              <input type="file" accept="image/*" className="w-full text-xs" onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)} />
+            <div className="p-3 border rounded-xl bg-yellow-50 text-[11px] text-gray-700">
+              <p className="font-bold">බැංකු විස්තර (Click to copy):</p>
+              <p onClick={() => {navigator.clipboard.writeText("123456789"); alert("ගිණුම් අංකය කොපි විය!")}} className="cursor-pointer hover:text-blue-600 mt-1">BOC - 123456789 (Branch Name)</p>
+              <input type="file" className="mt-2 w-full" onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)} />
             </div>
           )}
 
-          <button 
-            onClick={handleOrder} 
-            disabled={!name || !isPhoneValid(phone) || !address || !email || (paymentMethod === "Bank Transfer" && !image) || loading} 
-            className="w-full bg-green-500 text-white font-black py-4 rounded-xl hover:bg-green-600 disabled:bg-gray-300 shadow-lg uppercase transition-all"
-          >
+          <div className="text-right font-black text-blue-700 text-lg">Total: Rs. {totalWithDelivery}</div>
+
+          <button onClick={handleOrder} disabled={loading} className="w-full bg-green-500 text-white font-black py-4 rounded-xl shadow-lg uppercase">
             {loading ? "Processing..." : "Confirm & Send WhatsApp"}
           </button>
         </div>
