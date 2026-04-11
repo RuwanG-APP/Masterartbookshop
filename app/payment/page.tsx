@@ -87,12 +87,14 @@ function PaymentContent() {
       alert("ඇණවුම සාර්ථකව සේව් වුණා!");
       window.location.href = `https://wa.me/94716373716?text=${message}`;
 
-    } catch (error: any) {
+  } catch (error) {
       console.error("Error: ", error);
-      alert("දෝෂයක් ඇතිවිය: " + error.message);
+      alert("ඇණවුම සේව් කිරීමේදී දෝෂයක් ඇතිවිය. කරුණාකර නැවත උත්සාහ කරන්න.");
     } finally {
       setLoading(false);
     }
+
+  
   };
 
   return (
