@@ -53,24 +53,50 @@ function PaymentContent() {
         receiptUrl = data.secure_url;
       }
 
-      // Firestore එකේ රිපෝට් සඳහා දත්ත සේව් කිරීම
-      const now = new Date();
-      await addDoc(collection(db, "orders"), {
-        customerName: name,
-        customerPhone: phone,
-        address: address,
-        email: email,
-        books: cart.map(item => ({ name: item.name, price: item.price })),
-        subTotal: subTotal,
-        deliveryFee: parseInt(deliveryArea),
-        discount: 0,
-        totalAmount: totalWithDelivery,
-        paymentMethod: paymentMethod,
-        receiptUrl: receiptUrl,
-        soldDate: now.toLocaleDateString('en-GB'),
-        soldTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-        createdAt: serverTimestamp()
-      });
+   
+// Firestore එකට දත්ත සේව් කිරීම (ඔයා දැනටමත් ලියපු කොටස)
+    await addDoc(collection(db, "orders"), {
+      customerName: name,
+      customerPhone: phone,
+      address: address,
+      email: email,
+      books: cart.map(item => ({ name: item.name, price: item.price })),
+      subTotal: subTotal,
+      deliveryFee: parseInt(deliveryArea),
+      totalAmount: totalWithDelivery,
+      paymentMethod: paymentMethod,
+      receiptUrl: receiptUrl,
+      soldDate: now.toLocaleDateString('en-GB'),
+      soldTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      createdAt: serverTimestamp()
+    });
+
+    // ✅ මෙතන සිට අලුත් කොටස එකතු කරන්න:
+    
+    setLoading(false); // බටන් එක කැරකෙන එක නවත්වනවා
+    alert("ඇණවුම සාර්ථකව සේව් වුණා!"); // පාරිභෝගිකයාට පණිවිඩයක් පෙන්වනවා
+
+    // WhatsApp පණිවිඩය සකස් කිරීම
+    const bookList = cart.map(item => `- ${item.name} (Rs. ${item.price})`).join('\n');
+    const message = `*අලුත් ඇණවුමක්!*%0A%0A` +
+      `*නම:* ${name}%0A` +
+      `*දුරකථන:* ${phone}%0A` +
+      `*ලිපිනය:* ${address}%0A%0A` +
+      `*පොත්:*%0A${bookList}%0A%0A` +
+      `*මුළු මුදල:* Rs. ${totalWithDelivery}%0A` +
+      `*ගෙවීම් ක්‍රමය:* ${paymentMethod}%0A` +
+      (paymentMethod === "Bank Transfer" ? `*රිසිට් පත:* ${receiptUrl}` : "");
+
+    // WhatsApp එකට යොමු කිරීම (Redirect)
+    window.location.href = `https://wa.me/94716373716?text=${message}`;
+
+  } catch (error) {
+    console.error("Error adding document: ", error);
+    setLoading(false); // වැරැද්දක් වුණත් බටන් එක නිදහස් කරනවා
+    alert("ඇණවුම සේව් කිරීමේදී දෝෂයක් ඇති වුණා. කරුණාකර නැවත උත්සාහ කරන්න.");
+  }
+};
+
 
       // WhatsApp පණිවිඩය
       const bookList = cart.map(item => `• ${item.name} (Rs. ${item.price})`).join("%0A");
