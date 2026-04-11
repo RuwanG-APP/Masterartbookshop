@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
-// firebase.ts එක root එකේ තියෙන නිසා පියවර 2ක් පිටුපසට
 import { db } from "../../firebase"; 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
@@ -26,7 +25,7 @@ function PaymentContent() {
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
-  const subTotal = cart.reduce((sum, item) => sum + parseInt(item.price), 0);
+  const subTotal = cart.reduce((sum, item) => sum + parseInt(item.price || "0"), 0);
   const totalWithDelivery = subTotal + parseInt(deliveryArea);
 
   const isPhoneValid = (num: string) => /^\d{10}$/.test(num);
@@ -42,7 +41,6 @@ function PaymentContent() {
     let receiptUrl = "Cash on Delivery (COD)";
 
     try {
-      // 1. බැංකු රිසිට් එක Cloudinary වලට යැවීම
       if (paymentMethod === "Bank Transfer") {
         if (!image) { 
           alert("බැංකු රිසිට් පත ඇතුළත් කරන්න."); 
@@ -57,10 +55,8 @@ function PaymentContent() {
         receiptUrl = data.secure_url;
       }
 
-      // 2. වර්තමාන දිනය සහ වේලාව ලබා ගැනීම (මේක තමයි කලින් අමතක වෙලා තිබ්බේ)
-      const now = new Date();
+      const now = new Date(); // මම මේක ඇඩ් කළා
 
-      // 3. Firestore එකට දත්ත සේව් කිරීම
       await addDoc(collection(db, "orders"), {
         customerName: name,
         customerPhone: phone,
@@ -77,7 +73,6 @@ function PaymentContent() {
         createdAt: serverTimestamp()
       });
 
-      // 4. WhatsApp පණිවිඩය සකස් කිරීම
       const bookList = cart.map(item => `- ${item.name} (Rs. ${item.price})`).join('%0A');
       const message = `*අලුත් ඇණවුමක්!*%0A%0A` +
         `*නම:* ${name}%0A` +
@@ -88,15 +83,12 @@ function PaymentContent() {
         `*ගෙවීම් ක්‍රමය:* ${paymentMethod}%0A` +
         (paymentMethod === "Bank Transfer" ? `*රිසිට් පත:* ${receiptUrl}` : "");
 
-      // 5. අවසන් පියවර (Storage එක මකා වෙබ් අඩවියට යොමු කිරීම)
       localStorage.removeItem("cart");
-      alert("ස්තූතියි! ඔබේ ඇණවුම සාර්ථකව පද්ධතියේ සේව් විය.");
-      
-      // WhatsApp එකට යොමු කිරීම
+      alert("ඇණවුම සාර්ථකව සේව් වුණා!");
       window.location.href = `https://wa.me/94716373716?text=${message}`;
 
     } catch (error: any) {
-      console.error("Error details: ", error);
+      console.error("Error: ", error);
       alert("දෝෂයක් ඇතිවිය: " + error.message);
     } finally {
       setLoading(false);
@@ -108,7 +100,6 @@ function PaymentContent() {
       <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
         <h2 className="text-xl font-bold text-center mb-4 text-blue-600 uppercase">Confirm Your Order</h2>
         
-        {/* පොත් ලැයිස්තුව */}
         <div className="bg-blue-50 p-4 rounded-xl mb-2 border border-blue-100 shadow-inner">
           {cart.length > 0 ? (
             cart.map((item, index) => (
@@ -137,10 +128,10 @@ function PaymentContent() {
             <option value="500">කොළඹින් පිටත (Rs. 500)</option>
           </select>
 
-          <input type="text" placeholder="ඔබේ නම" className="w-full p-3 border rounded-xl text-sm outline-blue-400" onChange={(e) => setName(e.target.value)} />
-          <input type="tel" placeholder="දුරකථන අංකය" className="w-full p-3 border rounded-xl text-sm outline-blue-400" onChange={(e) => setPhone(e.target.value)} />
-          <input type="email" placeholder="ඊමේල් ලිපිනය" className="w-full p-3 border rounded-xl text-sm outline-blue-400" onChange={(e) => setEmail(e.target.value)} />
-          <textarea placeholder="බෙදාහැරිය යුතු ලිපිනය" className="w-full p-3 border rounded-xl text-sm h-16 outline-blue-400" onChange={(e) => setAddress(e.target.value)}></textarea>
+          <input type="text" placeholder="ඔබේ නම" className="w-full p-3 border rounded-xl text-sm outline-blue-400" value={name} onChange={(e) => setName(e.target.value)} />
+          <input type="tel" placeholder="දුරකථන අංකය" className="w-full p-3 border rounded-xl text-sm outline-blue-400" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input type="email" placeholder="ඊමේල් ලිපිනය" className="w-full p-3 border rounded-xl text-sm outline-blue-400" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <textarea placeholder="බෙදාහැරිය යුතු ලිපිනය" className="w-full p-3 border rounded-xl text-sm h-16 outline-blue-400" value={address} onChange={(e) => setAddress(e.target.value)}></textarea>
           
           <select className="w-full p-3 border rounded-xl font-bold bg-blue-50 text-blue-800 text-sm" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
             <option value="Bank Transfer">Bank Transfer (බැංකු තැන්පතු)</option>
@@ -161,7 +152,7 @@ function PaymentContent() {
           <button 
             onClick={handleOrder} 
             disabled={loading} 
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-lg uppercase transition-all disabled:bg-gray-300"
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-lg uppercase transition-all active:scale-95 disabled:bg-gray-300"
           >
             {loading ? "Processing..." : "Confirm & Send WhatsApp"}
           </button>
