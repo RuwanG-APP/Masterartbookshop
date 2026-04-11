@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -10,5 +10,9 @@ const firebaseConfig = {
   appId: "ඔයාගේ-APP-ID-එක"
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// 👇 Firebase App එක දැනටමත් තිබේ නම් එය පාවිච්චි කිරීමටත්, නැතිනම් අලුතින් සෑදීමටත් මෙය උපකාරී වේ.
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+const db = getFirestore(app);
+
+export { db, app };
