@@ -50,7 +50,7 @@ function PaymentContent() {
       const bookList = cart.map(item => `• ${item.name} (Rs. ${item.price})`).join("%0A");
       const message = `*නව ඇණවුමක්!*%0A%0A*පොත්:*%0A${bookList}%0A%0A*මුළු මුදල:* Rs. ${totalWithDelivery}%0A%0A*පාරිභෝගික විස්තර:*%0A👤 නම: ${name}%0A📞 දුරකථන: ${phone}%0A🏠 ලිපිනය: ${address}%0A📧 Email: ${email}%0A💳 ගෙවීම් ක්‍රමය: ${paymentMethod}%0A%0A*රිසිට්:* ${receiptUrl}`;
       
-      window.open(`https://wa.me/94716373716?text=${message}`, "_blank");
+      window.open(`https://wa.me/94760829235?text=${message}`, "_blank");
       
       // ඇණවුම අවසන් වූ පසු Cart එක හිස් කර Return වීම
       localStorage.removeItem("cart");
